@@ -10,17 +10,11 @@ const NO_BREAK_BEFORE: &[&str] = &[
     "、", "。", "）", "」", "』", "】", "》", "〉", "，", "．", "!", "?", "！", "？", "：", "；",
 ];
 const NO_BREAK_AFTER: &[&str] = &["（", "「", "『", "【", "《", "〈"];
-const PARTICLES: &[&str] = &[
-    "は", "が", "を", "に", "へ", "で", "と", "や", "の", "も", "から", "まで", "より", "か", "ね",
-    "よ", "って", "など",
-];
 
 #[derive(Debug, Clone, Serialize)]
-struct Analysis<'a> {
+struct Analysis {
     tokens: Vec<String>,
     break_after: Vec<usize>,
-    no_break_before: &'a [&'a str],
-    no_break_after: &'a [&'a str],
 }
 
 #[derive(Debug, Clone)]
@@ -41,15 +35,13 @@ pub fn analyze_ja_title(input: &[u8]) -> Result<Vec<u8>, String> {
     serde_json::to_vec(&analysis).map_err(|err| err.to_string())
 }
 
-fn analyze_text(text: &str) -> Result<Analysis<'static>, String> {
+fn analyze_text(text: &str) -> Result<Analysis, String> {
     let units = tokenize_units(text)?;
     let tokens = units.iter().map(|unit| unit.surface.clone()).collect();
     let break_after = collect_break_candidates(&units);
     Ok(Analysis {
         tokens,
         break_after,
-        no_break_before: NO_BREAK_BEFORE,
-        no_break_after: NO_BREAK_AFTER,
     })
 }
 
@@ -193,7 +185,7 @@ fn is_boundary_strong(left: &TokenUnit, right: &TokenUnit) -> bool {
 }
 
 fn is_particle(token: &TokenUnit) -> bool {
-    token.pos_major == "助詞" || PARTICLES.contains(&token.surface.as_str())
+    token.pos_major == "助詞"
 }
 
 #[cfg(test)]
@@ -270,11 +262,10 @@ mod tests {
     }
 
     #[test]
-    fn analyze_text_sets_kinsoku_metadata() {
+    fn analyze_text_returns_tokens_and_breaks() {
         let analysis: Analysis = analyze_text("短いタイトル").unwrap();
         assert!(analysis.tokens.len() >= 2);
-        assert!(analysis.no_break_before.contains(&"、"));
-        assert!(analysis.no_break_after.contains(&"（"));
+        assert!(analysis.break_after.len() < analysis.tokens.len());
     }
 
     #[test]
@@ -379,9 +370,9 @@ mod tests {
     }
 
     #[test]
-    fn particle_detection_works_by_pos_or_surface() {
+    fn particle_detection_works_by_pos_only() {
         assert!(is_particle(&token("X", "助詞")));
-        assert!(is_particle(&token("を", "名詞")));
+        assert!(!is_particle(&token("を", "名詞")));
         assert!(!is_particle(&token("自動", "名詞")));
     }
 

@@ -1,8 +1,3 @@
-#let particle-tokens = (
-  "は", "が", "を", "に", "へ", "で", "と", "や", "の", "も", "か", "ね", "よ",
-  "から", "まで", "より", "って", "など",
-)
-
 #let _analyzer = plugin("/plugin/ja_title_wrap_core.wasm")
 
 #let _plugin-analyze(text) = {
@@ -14,14 +9,12 @@
   assert(type(data) == dictionary, message: "auto-title plugin returned invalid JSON")
   let tokens = data.at("tokens")
   let break-after = data.at("break_after")
-  let no-break-before = data.at("no_break_before")
-  let no-break-after = data.at("no_break_after")
+  assert(type(tokens) == array, message: "auto-title plugin: tokens must be array")
+  assert(type(break-after) == array, message: "auto-title plugin: break_after must be array")
 
   (
     tokens: tokens,
     break_after: break-after,
-    no_break_before: no-break-before,
-    no_break_after: no-break-after,
   )
 }
 
@@ -30,19 +23,6 @@
     return ""
   }
   tokens.slice(start, end).join("")
-}
-
-#let _can-break(left, right, no-break-before, no-break-after) = {
-  if left == " " or right == " " {
-    return false
-  }
-  if left in no-break-after or right in no-break-before {
-    return false
-  }
-  if right in particle-tokens {
-    return false
-  }
-  true
 }
 
 #let _compare-score(a, b) = {
@@ -61,7 +41,7 @@
   a.balance < b.balance
 }
 
-#let _valid-breaks(tokens, raw-breaks, no-break-before, no-break-after) = {
+#let _valid-breaks(tokens, raw-breaks) = {
   if tokens.len() < 2 {
     return ()
   }
@@ -75,31 +55,10 @@
     if raw < 0 or raw >= max-index {
       continue
     }
-    let left = tokens.at(raw)
-    let right = tokens.at(raw + 1)
-    if not _can-break(left, right, no-break-before, no-break-after) {
+    if raw in valid {
       continue
     }
     valid.push(raw)
-  }
-
-  if valid.len() == 0 {
-    let center = calc.floor(max-index / 2)
-    let best = none
-    for i in range(max-index) {
-      let left = tokens.at(i)
-      let right = tokens.at(i + 1)
-      if not _can-break(left, right, no-break-before, no-break-after) {
-        continue
-      }
-      let dist = calc.abs(i - center)
-      if best == none or dist < best.dist {
-        best = (idx: i, dist: dist)
-      }
-    }
-    if best != none {
-      valid.push(best.idx)
-    }
   }
 
   valid
@@ -212,8 +171,6 @@
   let breaks = _valid-breaks(
     tokens,
     analysis.break_after,
-    analysis.no_break_before,
-    analysis.no_break_after,
   )
   if breaks.len() == 0 {
     return text
