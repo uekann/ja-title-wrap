@@ -1,0 +1,5 @@
+package titlewarp:auto-title-break;
+
+world auto-title-break {
+  export analyze-ja-title: func(text: string) -> string;
+}

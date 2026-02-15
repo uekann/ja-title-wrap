@@ -1,0 +1,13 @@
+[package]
+name = "ja-title-wrap-core"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+lindera = { version = "2.2.0", default-features = false, features = ["embed-ipadic"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+wasm-minimal-protocol = "0.1.0"

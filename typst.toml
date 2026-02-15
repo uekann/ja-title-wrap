@@ -1,0 +1,8 @@
+[package]
+name = "ja-title-wrap"
+version = "0.1.0"
+entrypoint = "src/lib.typ"
+authors = ["uekann"]
+license = "MIT"
+description = "Automatically break long Japanese slide titles."
+compiler = "0.14.2"
